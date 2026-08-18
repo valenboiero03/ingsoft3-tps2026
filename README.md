@@ -1,4 +1,4 @@
-# ingsoft3-tp01
+# proyecto ingsoftw3 version B
 
 ## Instalacion
 
