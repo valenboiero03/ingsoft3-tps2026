@@ -1,5 +1,1 @@
-# ingsoft3-tp01 version B
-
-## Instalacion
-
-git clone <url-repo>
+Proyecto ingsoftw3 - version B
