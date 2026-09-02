@@ -1,0 +1,227 @@
+.contenedor {
+  max-width: var(--ancho);
+  margin: 0 auto;
+  padding: 56px 40px 90px;
+}
+
+/* --------------------------------------------------------------- portada --- */
+
+.encabezado {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  padding-bottom: 26px;
+  border-bottom: 1px solid var(--linea);
+}
+
+.intro {
+  max-width: 560px;
+}
+
+.antetitulo {
+  margin: 0 0 14px;
+  font-family: var(--sans);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--acento);
+}
+
+.titulo {
+  margin: 0 0 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 44px;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+
+.bajada {
+  margin: 0;
+  font-size: 16.5px;
+  line-height: 1.55;
+  color: var(--texto);
+  text-wrap: pretty;
+}
+
+.datos {
+  flex: none;
+  text-align: right;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--apagado);
+}
+
+/* --------------------------------------------------------------- filtros --- */
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 26px 0 30px;
+}
+
+.chip,
+.chipActivo {
+  padding: 8px 17px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, border-color 0.16s;
+}
+
+.chip {
+  border: 1px solid var(--linea-control);
+  background: transparent;
+  color: var(--texto);
+}
+
+.chip:hover {
+  border-color: var(--tinta);
+  color: var(--tinta);
+}
+
+.chipActivo {
+  border: 1px solid var(--tinta);
+  background: var(--tinta);
+  color: var(--bg);
+}
+
+/* --------------------------------------------------------------- grilla --- */
+
+/* El fondo de la grilla se ve a traves del gap de 1px: eso dibuja los
+   separadores sin necesidad de bordes en cada tarjeta. */
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--linea);
+  border: 1px solid var(--linea);
+}
+
+.tarjeta {
+  background: var(--superficie);
+  padding: 26px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.filaSuperior {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.categoria {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--apagado);
+}
+
+.precio {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nombre {
+  margin: 0;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.descripcion {
+  margin: 0;
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--texto);
+  text-wrap: pretty;
+}
+
+.duracion {
+  margin: 0;
+  padding-top: 4px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--apagado);
+}
+
+.boton {
+  margin-top: 12px;
+  padding: 11px;
+  display: block;
+  text-align: center;
+  border: 1px solid var(--linea-control);
+  background: transparent;
+  color: var(--tinta);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, border-color 0.16s;
+}
+
+.boton:hover {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: var(--superficie);
+}
+
+.aviso {
+  margin: 30px 0 0;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--apagado);
+}
+
+/* Texto que solo leen los lectores de pantalla: sirve para que cada boton
+   "Reservar turno" diga de que servicio se trata. */
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .grilla {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .contenedor {
+    padding: 36px 20px 60px;
+  }
+
+  .encabezado {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .datos {
+    text-align: left;
+  }
+
+  .titulo {
+    font-size: 34px;
+  }
+
+  .grilla {
+    grid-template-columns: 1fr;
+  }
+}
