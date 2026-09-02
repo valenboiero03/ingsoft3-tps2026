@@ -4,6 +4,7 @@ services:
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: app
+      TZ: America/Argentina/Cordoba
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -16,6 +17,7 @@ services:
     build: ./backend
     environment:
       DATABASE_URL: "postgresql://postgres:${DB_PASSWORD}@db:5432/app"
+      TZ: America/Argentina/Cordoba
     ports:
       - "3000:3000"
     depends_on:
