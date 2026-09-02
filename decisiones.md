@@ -1,4 +1,4 @@
-## Git no pudo resolver el conflicto solo ya que no no tiene la capacidad de decidir por nosotros cual es el cambio que verdaderamente queremos aplicar o si queremos combinar los dos cambios, sino que eso lo tenemos que decidir nosotros.
+﻿## Git no pudo resolver el conflicto solo ya que no no tiene la capacidad de decidir por nosotros cual es el cambio que verdaderamente queremos aplicar o si queremos combinar los dos cambios, sino que eso lo tenemos que decidir nosotros.
 ## Lo que tendria que haber pasado para que nunca apareciera es que , no cambien la misma linea de main dos ramas o que la version b haya actuado sobre los cambios de la version a con sus cambios ya realizados ya que al hacer cada uno alguna operacion sobre la misma linea se estarian pisando como fue este el caso.
 
 ## Lo que me costo fue justamente la parte de la version a y la version b, ya que al realizarse con copilot y realizar las cosas tan rapidas en el video a veces no entendia que habia accionado, despues de verlo un par de veces pude resolver ese problema.
@@ -33,3 +33,30 @@ Lo evalué contra los 4 puntos que pide la cátedra:
 ### Sobre el uso de IA
 
 Usé Claude en este TP: para diseñar el modelo de datos, escribir el código del backend y frontend, para algunos comandos de Docker fuera de lso basicos como docker compose up , y para comandos como nginx y tambien para debuggear cada error que fui encontrando en el camino. No copié nada a ciegas: cada pieza la probé yo mismo antes de darla por buena (corriendo los contenedores, pegándole a los endpoints con `curl`, verificando en la base de datos directamente que los datos persistían, comparando tamaños de imagen reales). Cada Dockerfile tiene dos etapas, por qué el `healthcheck` es necesario y no alcanza con `depends_on` solo, y por qué el proxy de nginx usa una variable en vez del nombre del servicio escrito directo.
+
+
+## TP3 - Planificacion y trazabilidad
+
+### Duracion del sprint
+
+Elegi un sprint de 10 dias (aproximadamente 1.5 semanas) en vez de un numero redondo de semanas. El campo Iteration de GitHub Projects solo permite numeros enteros cuando se usa la unidad "weeks", asi que para lograr algo entre una semana y dos semanas cambie la unidad a "days". Esta duracion se ajusta mejor al ritmo con el que voy entregando los TPs de la materia que una semana justa (demasiado corta para completar una historia con dos tareas) o dos semanas completas (demasiado laxo, perderia la presion de terminar rapido).
+
+### Limite de trabajo en progreso
+
+Configure el limite de la columna "In Progress" en 2. La regla de partida es cantidad de personas mas uno: como trabajo solo en este proyecto, eso da 1 + 1 = 2. El "mas uno" funciona como valvula para cuando algo queda esperando (por ejemplo, un PR esperando que corran los checks) y necesito poder avanzar en otra cosa sin quedarme bloqueado, sin llegar a tener cinco tareas a medio hacer en simultaneo.
+
+### Diagnostico de la historia mal escrita
+
+Cree a proposito el issue #18, "Como desarrollador quiero crear la tabla usuarios para guardar los datos", para reconocer el anti-patron de la historia-tarea disfrazada. Tiene la forma de una historia de usuario pero el contenido es una tarea tecnica: "crear una tabla" no es algo que un usuario final quiera, es un paso interno de implementacion, y el "para guardar los datos" no es un beneficio real sino casi la misma frase repetida sin explicar que gana alguien con esto.
+
+Como la reescribiria: la bajaria a tarea, colgada de una historia con valor de usuario real, por ejemplo "Como usuario quiero que mis datos se guarden de forma persistente para no perderlos si la app se reinicia o se actualiza", y "crear la tabla usuarios" pasaria a ser una de las tareas tecnicas de esa historia.
+
+### Problemas que encontre y como los resolvi
+
+- No tenia GitHub CLI instalado en esta maquina. Lo instale con `winget install --id GitHub.cli` y reinicie la terminal para que tomara el PATH nuevo.
+- El token de `gh` no tenia el scope `project`, asi que los comandos de `gh project` hubieran fallado. Lo actualice con `gh auth refresh -s project` antes de crear el proyecto.
+- Al crear las tres labels (`epic`, `story`, `task`) me salte una sin darme cuenta (`task`). Lo detecte comparando la salida de `gh label list` contra lo que esperaba tener, y corri el comando que faltaba.
+
+### Sobre el uso de IA
+
+Use Claude durante todo este TP: para entender la consigna y la guia paso a paso, para que me explicara conceptos que no tenia claros (por ejemplo la diferencia entre sub-issues y task-lists), para que me armara los comandos de `gh` y PowerShell en cada paso, y para redactar el diagnostico de la historia mal escrita y este mismo archivo. No copie nada a ciegas: corri cada comando yo mismo en mi propia terminal, revise la salida de cada uno antes de seguir al siguiente paso, y verifique visualmente en GitHub (capturas del board, del proyecto publico, del issue #14 cerrado y movido a Done, y del pull request #17 mergeado) que cada cosa quedara como se esperaba antes de avanzar.
