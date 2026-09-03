@@ -66,7 +66,7 @@ evidencias.md  → evidencia de funcionamiento de cada TP
 
 
 ## Estado del CI
-```
+
 [![CI](https://github.com/valenboiero03/ingsoft3-tps2026/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/valenboiero03/ingsoft3-tps2026/actions/workflows/ci.yml)
-```
+
 
