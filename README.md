@@ -63,5 +63,10 @@ docker-compose.registry.yml   → orquestación con imágenes publicadas
 decisiones.md  → decisiones técnicas de cada TP
 evidencias.md  → evidencia de funcionamiento de cada TP
 ```
-## Status badge Markdown
+
+
+## Estado del CI
+```
 [![CI](https://github.com/valenboiero03/ingsoft3-tps2026/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/valenboiero03/ingsoft3-tps2026/actions/workflows/ci.yml)
+```
+
