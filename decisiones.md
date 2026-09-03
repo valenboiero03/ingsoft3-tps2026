@@ -63,3 +63,25 @@ Use Claude durante todo este TP: para entender la consigna y la guia paso a paso
 
 ## TP4 - Nota
 Cambio de relleno para demostrar el boton "Update branch" con dos PRs abiertos en simultaneo.
+
+## TP4 - Pipelines de CI
+
+### Estructura del pipeline
+Un workflow (`.github/workflows/ci.yml`) disparado por `pull_request` y `push` a `main`, con dos jobs en paralelo: `build-backend` y `build-frontend`. Cada uno usa el Dockerfile correspondiente del TP2 (`./backend`, `./frontend`) via `docker/build-push-action`, con `push: false` (todavia no se publica en ningun registry, solo se valida que compile).
+
+### Cache de capas
+`docker/setup-buildx-action` + `cache-from`/`cache-to: type=gha`, con `scope` distinto por job (`backend` / `frontend`) para que no se pisen entre si. Se confirmo funcionando en la corrida del PR #23 (job `build-frontend`, 31% de las capas reutilizadas) — el cache se guarda en cada push a `main` y lo aprovecha el proximo PR desde su primera corrida.
+
+### Gate obligatorio
+Se extendio la proteccion de rama del TP1: `Require status checks to pass before merging` con `build-backend` y `build-frontend` como checks requeridos, mas `Require branches to be up to date before merging` (equivalente a `strict: true`). Se mantuvieron las reglas del TP1 (0 approvals, `Do not allow bypassing the above settings`).
+
+### Demostracion del gate
+PR #23: se agrego una dependencia inexistente a `backend/package.json`, lo que hizo fallar el paso `npm ci` del Dockerfile. El check `build-backend` quedo en rojo y el boton de merge se bloqueo (`build-frontend` no se vio afectado, corre independiente). Se abrio un segundo PR (#24) en paralelo para demostrar el boton "Update branch" sobre el PR bloqueado. Se corrigio la dependencia, el pipeline paso a verde, y se mergeo con squash.
+
+### Problemas encontrados
+- Docker Desktop no estaba corriendo en el primer intento de build local (mismo problema que en TP2).
+- Backend Node/Express no tiene build step, por lo que un error de codigo no alcanza para romper `docker build` — hubo que romper una dependencia en `package.json` en vez de el codigo en si.
+- Varias veces el commit se hizo en la rama equivocada (`main` en vez de la feature branch) por olvidar el `git checkout -b` antes de editar — resuelto verificando `git status`/`git branch` antes de cada commit.
+
+### Uso de IA
+Se uso Claude para interpretar la consigna del TP4, generar el `ci.yml`, planificar la secuencia de PRs, y depurar problemas de git (ramas desincronizadas, conflictos de merge) durante la ejecucion.
