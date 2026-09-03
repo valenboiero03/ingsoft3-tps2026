@@ -60,3 +60,6 @@ Como la reescribiria: la bajaria a tarea, colgada de una historia con valor de u
 ### Sobre el uso de IA
 
 Use Claude durante todo este TP: para entender la consigna y la guia paso a paso, para que me explicara conceptos que no tenia claros (por ejemplo la diferencia entre sub-issues y task-lists), para que me armara los comandos de `gh` y PowerShell en cada paso, y para redactar el diagnostico de la historia mal escrita y este mismo archivo. No copie nada a ciegas: corri cada comando yo mismo en mi propia terminal, revise la salida de cada uno antes de seguir al siguiente paso, y verifique visualmente en GitHub (capturas del board, del proyecto publico, del issue #14 cerrado y movido a Done, y del pull request #17 mergeado) que cada cosa quedara como se esperaba antes de avanzar.
+
+## TP4 - Nota
+Cambio de relleno para demostrar el boton "Update branch" con dos PRs abiertos en simultaneo.
