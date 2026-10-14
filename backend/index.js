@@ -2,6 +2,7 @@
 // piezas (pool -> repositorio -> servicio) y cada endpoint pide, delega y
 // responde. Las reglas viven en src/ y son las que tienen tests.
 
+import { readFile } from 'node:fs/promises';
 import express from 'express';
 import cors from 'cors';
 import pool from './db.js';
@@ -101,6 +102,35 @@ app.post('/api/turnos', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend escuchando en el puerto ${PORT}`);
-});
+// Esquema de la base: lo crea la propia app al arrancar. init.sql se puede
+// correr las veces que sea sin duplicar nada (IF NOT EXISTS, ON CONFLICT DO
+// NOTHING), asi que cada entorno (QA, PROD) arma su base solo en su primer
+// deploy, sin pasos a mano. Reintenta porque la base puede estar despertando
+// (Neon suspende el computo sin uso) o terminando de arrancar (compose).
+async function prepararBase(intentos = 10, esperaMs = 3000) {
+  const sql = await readFile(new URL('./db/init.sql', import.meta.url), 'utf8');
+  for (let i = 1; ; i++) {
+    try {
+      await pool.query(sql);
+      console.log('Esquema de la base listo');
+      return;
+    } catch (err) {
+      if (i >= intentos) throw err;
+      console.log(`La base no respondio (intento ${i} de ${intentos}): ${err.message}`);
+      await new Promise((r) => setTimeout(r, esperaMs));
+    }
+  }
+}
+
+// Si la base no queda lista, el proceso termina con error: mejor un deploy que
+// falla a la vista que una app que arranca y responde 500 en cada pedido.
+prepararBase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Backend escuchando en el puerto ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('No se pudo preparar la base:', err);
+    process.exit(1);
+  });
