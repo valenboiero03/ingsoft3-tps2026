@@ -209,3 +209,49 @@ jobs:
           done
           echo "QA no respondio a tiempo"
           exit 1
+
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: deploy-qa                         # PROD solo despues de QA vivo
+    # Sin if de rama: depende de deploy-qa, que ya lo tiene. En un PR deploy-qa
+    # no corre, asi que este tampoco. La condicion se hereda por la cadena.
+    environment: production                  # aca la corrida se PAUSA hasta que el reviewer aprueba
+    # Un solo deploy a PROD a la vez. No ordena la cola de aprobaciones: si
+    # quedan dos corridas esperando, la vieja se rechaza a mano.
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    steps:
+      # Entre que la corrida queda esperando y alguien aprueba pueden pasar horas
+      # y main se mueve. El &ref= garantiza que a PROD llega el commit que se
+      # aprobo, no la punta de la rama.
+      - name: Disparar deploy en Render (backend + front) del commit aprobado
+        env:
+          HOOK_API: ${{ secrets.RENDER_HOOK_API_PROD }}
+          HOOK_FRONT: ${{ secrets.RENDER_HOOK_FRONT_PROD }}
+        run: |
+          curl -fsS --max-time 30 "$HOOK_API&ref=$GITHUB_SHA" > /dev/null
+          curl -fsS --max-time 30 "$HOOK_FRONT&ref=$GITHUB_SHA" > /dev/null
+          echo "Deploy de $GITHUB_SHA pedido a Render (api + front de PROD)"
+
+      - name: Smoke test de PROD (espera a que conteste)
+        shell: bash
+        env:
+          URL_API: https://turnero-api-prod-am2s.onrender.com
+          URL_FRONT: https://turnero-front-prod-y4rx.onrender.com
+        run: |
+          echo "Esperando a que PROD este vivo..."
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 10 "$URL_API/health" \
+               && curl -fsS --max-time 10 "$URL_API/api/servicios" > /dev/null \
+               && curl -fsS --max-time 10 "$URL_FRONT/" > /dev/null \
+               && curl -fsS --max-time 10 "$URL_FRONT/api/servicios" > /dev/null; then
+              echo ""
+              echo "PROD responde (api + base + front + front->api), vuelta $i"
+              exit 0
+            fi
+            echo " ... vuelta $i: todavia no responde"
+            sleep 20
+          done
+          echo "PROD no respondio a tiempo"
+          exit 1
