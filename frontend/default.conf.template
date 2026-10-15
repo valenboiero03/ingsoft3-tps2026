@@ -1,0 +1,24 @@
+server {
+    listen 80;
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # La direccion del backend y el DNS llegan por variables de entorno: nginx
+    # reemplaza los ${...} al arrancar. En compose valen backend:3000 y el DNS de
+    # Docker (los defaults del Dockerfile); en Render, la URL de la api de ESE
+    # entorno y un DNS publico. Asi la misma imagen sirve en QA y en PROD.
+    # La variable ($backend_api) hace que nginx resuelva el nombre recien cuando
+    # llega un pedido, no al arrancar.
+    resolver ${DNS_RESOLVER} valid=10s ipv6=off;
+    set $backend_api ${BACKEND_URL};
+
+    location /api/ {
+        proxy_pass $backend_api;
+        # La api de Render es https: sin esto el TLS no sabe a que host va (SNI).
+        proxy_ssl_server_name on;
+    }
+}

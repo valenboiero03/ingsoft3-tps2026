@@ -14,6 +14,11 @@ ENTRYPOINT ["npm", "run", "test:ci"]
 
 # ---- Etapa 3: nginx sirve los estaticos (queda ULTIMA: es la que se despliega) ----
 FROM nginx:alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Va en templates/ (no en conf.d/): la imagen oficial de nginx reemplaza los
+# ${VARIABLE} al arrancar y deja el resultado en conf.d/default.conf.
+COPY default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
+# Valores por defecto = los de docker compose. Render los pisa por entorno.
+ENV BACKEND_URL=http://backend:3000 \
+    DNS_RESOLVER=127.0.0.11
 EXPOSE 80
