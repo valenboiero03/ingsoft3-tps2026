@@ -29,7 +29,7 @@ export default function Catalogo() {
       <div className={estilos.encabezado}>
         <div className={estilos.intro}>
           <p className={estilos.antetitulo}>Turnos online</p>
-          <h1 className={estilos.titulo}>Elegí tu servicio</h1>
+          <h1 className={estilos.titulo}>Elegí tu servicio y reservá tu turno</h1>
           <p className={estilos.bajada}>
             Reservá en menos de un minuto. Podés cancelar o reprogramar hasta 4
             horas antes del turno.
