@@ -196,15 +196,17 @@ jobs:
           for i in $(seq 1 30); do
             # --max-time: un servicio despertando acepta la conexion y no
             # contesta; sin tope, curl podria colgarse en cada vuelta.
-            if curl -fsS --max-time 10 "$URL_API/health" \
+            # /health tiene que contestar con ESTE commit: si contesta otro, Render
+            # todavia esta construyendo o sirviendo la version anterior.
+            if curl -fsS --max-time 10 "$URL_API/health" | grep -q "\"commit\":\"$GITHUB_SHA\"" \
                && curl -fsS --max-time 10 "$URL_API/api/servicios" > /dev/null \
                && curl -fsS --max-time 10 "$URL_FRONT/" > /dev/null \
                && curl -fsS --max-time 10 "$URL_FRONT/api/servicios" > /dev/null; then
               echo ""
-              echo "QA responde (api + base + front + front->api), vuelta $i"
+              echo "QA responde con $GITHUB_SHA (api + base + front + front->api), vuelta $i"
               exit 0
             fi
-            echo " ... vuelta $i: todavia no responde"
+            echo " ... vuelta $i: todavia no responde con $GITHUB_SHA"
             sleep 20
           done
           echo "QA no respondio a tiempo"
@@ -242,15 +244,17 @@ jobs:
         run: |
           echo "Esperando a que PROD este vivo..."
           for i in $(seq 1 30); do
-            if curl -fsS --max-time 10 "$URL_API/health" \
+            # /health tiene que contestar con ESTE commit: si contesta otro, Render
+            # todavia esta construyendo o sirviendo la version anterior.
+            if curl -fsS --max-time 10 "$URL_API/health" | grep -q "\"commit\":\"$GITHUB_SHA\"" \
                && curl -fsS --max-time 10 "$URL_API/api/servicios" > /dev/null \
                && curl -fsS --max-time 10 "$URL_FRONT/" > /dev/null \
                && curl -fsS --max-time 10 "$URL_FRONT/api/servicios" > /dev/null; then
               echo ""
-              echo "PROD responde (api + base + front + front->api), vuelta $i"
+              echo "PROD responde con $GITHUB_SHA (api + base + front + front->api), vuelta $i"
               exit 0
             fi
-            echo " ... vuelta $i: todavia no responde"
+            echo " ... vuelta $i: todavia no responde con $GITHUB_SHA"
             sleep 20
           done
           echo "PROD no respondio a tiempo"
