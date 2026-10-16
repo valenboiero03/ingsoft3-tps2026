@@ -28,9 +28,12 @@ function manejarError(res, err, mensajeGenerico) {
   return res.status(500).json({ error: mensajeGenerico });
 }
 
-// Lo usa el healthcheck de docker-compose.
+// Lo usan el healthcheck de Render y el smoke test del pipeline. Devuelve
+// ademas el commit que esta corriendo: Render lo inyecta en RENDER_GIT_COMMIT
+// al desplegar. Asi el smoke puede comprobar que contesta la version que se
+// acaba de desplegar y no la anterior. En compose no existe y dice 'local'.
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', commit: process.env.RENDER_GIT_COMMIT || 'local' });
 });
 
 // Datos del negocio. Es lo que permite que el mismo frontend sirva para otro rubro.
