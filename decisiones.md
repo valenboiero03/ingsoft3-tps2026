@@ -1,4 +1,14 @@
-﻿## Git no pudo resolver el conflicto solo ya que no no tiene la capacidad de decidir por nosotros cual es el cambio que verdaderamente queremos aplicar o si queremos combinar los dos cambios, sino que eso lo tenemos que decidir nosotros.
+﻿## Enlaces de este TP (TP6)
+- **Paquetes:**
+  - [backend](https://github.com/valenboiero03/ingsoft3-tps2026/pkgs/container/ingsoft3-tps2026-backend)
+  - [frontend](https://github.com/valenboiero03/ingsoft3-tps2026/pkgs/container/ingsoft3-tps2026-frontend)
+- **Cadena:**
+  1. [PR #34](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/38603583706/job/115988683701): "Entrar al registry" salteado.
+  2. [Corrida de main](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/38605227688/job/115994265753): publicar es el ultimo paso.
+- **QA:** [api](https://turnero-api-qa-i3gd.onrender.com/health) y [front](https://turnero-front-qa-crex.onrender.com).
+- **PROD:** [api](https://turnero-api-prod-am2s.onrender.com/health) y [front](https://turnero-front-prod-y4rx.onrender.com).
+
+## Git no pudo resolver el conflicto solo ya que no no tiene la capacidad de decidir por nosotros cual es el cambio que verdaderamente queremos aplicar o si queremos combinar los dos cambios, sino que eso lo tenemos que decidir nosotros.
 ## Lo que tendria que haber pasado para que nunca apareciera es que , no cambien la misma linea de main dos ramas o que la version b haya actuado sobre los cambios de la version a con sus cambios ya realizados ya que al hacer cada uno alguna operacion sobre la misma linea se estarian pisando como fue este el caso.
 
 ## Lo que me costo fue justamente la parte de la version a y la version b, ya que al realizarse con copilot y realizar las cosas tan rapidas en el video a veces no entendia que habia accionado, despues de verlo un par de veces pude resolver ese problema.
@@ -141,3 +151,67 @@ La diferencia con el gate del TP4: alla frenaba que la imagen no se construyera;
 
 ### Uso de IA
 Use Claude para el refactor, los tests, la configuracion de cobertura, los cambios en los Dockerfiles y el `ci.yml`, y el borrador de esta seccion. Los commits, los push y los Pull Requests los hice yo desde mi terminal, revisando `git status` y `git branch` antes de cada commit. Lei cada archivo antes de subirlo, mire los checks de cada PR en GitHub y abri el log de las corridas rojas para leer la tabla de cobertura y las lineas de error.
+
+## TP6 - CD: environments, aprobaciones y deployment patterns
+
+### Por que el artefacto se publica solo con verde
+La imagen sale solo si se cumplen tres cosas:
+1. Nada entra a `main` sin verde.
+2. Solo `main` publica.
+3. Publicar es el ultimo paso del job que corre los tests.
+
+Si se publicara igual, una imagen del registry ya no significaria "paso la verificacion".
+
+### Continuous Delivery vs Deployment
+Implemente Continuous Delivery. QA se despliega solo y PROD solo con mi aprobacion, porque no tengo tests e2e ni monitoreo que reemplacen esa revision.
+
+### Cadena y secrets
+`deploy-qa` tiene `needs` de los dos builds y `if` de `main`, asi que los PR no despliegan. `deploy-prod` tiene `needs: deploy-qa` y `environment: production`, que lo frena hasta la aprobacion. Los hooks de QA son secrets del environment `qa` y los de PROD del environment `production`: solo los lee un job de ese environment, y en PROD recien despues de aprobar.
+
+### Que quedo por variable
+La imagen trae el front compilado y la plantilla de nginx. Por variable van:
+- `BACKEND_URL` y `DNS_RESOLVER` en el front.
+- `DATABASE_URL` y `TZ` en la api.
+
+Asi la misma imagen sirve en QA y en PROD. Comprobe que las bases son distintas creando un dato solo en `app_prod`: aparece en PROD y no en QA.
+
+### Criterios del gate
+Antes de aprobar miro:
+- Que el smoke de QA este verde con el commit correcto.
+- Que el cambio se vea bien en QA.
+- Que no haya cambios de base o variables nuevas que PROD no tenga.
+
+Rechace la corrida #37 porque su smoke dio verde sin verificar que version corria.
+
+### Free tier
+Render Free:
+- Duerme los servicios a los 15 min y tarda hasta un minuto en despertar.
+- Da 750 horas y 500 minutos de build por mes.
+
+El smoke lo maneja con 30 reintentos cada 20 s. Use Neon porque el Postgres gratis de Render vence a los 30 dias.
+
+### Lo que se pierde porque Render reconstruye
+Render construye de nuevo el commit en vez de usar mi imagen. Es el mismo codigo pero no el mismo artefacto: una imagen base distinta o un build fallido pueden dar otro resultado que el que paso los tests.
+
+### Que prueba el smoke y que no
+Prueba que la api responde con el commit desplegado, que llega a su base y que el front llega a la api. No prueba que reservar un turno funcione.
+
+### Deployment pattern y rollback
+Para produccion real usaria **blue-green**: es barato duplicar dos servicios chicos y el rollback es instantaneo. No canary, porque con pocos usuarios no hay trafico para comparar. Me falta un router delante y metricas de errores.
+
+Rollback actual:
+1. Tomar el commit bueno anterior de Deployments.
+2. Disparar los hooks de PROD con `&ref=<sha>`.
+3. Esperar Live en Render y verificar `/health`.
+
+Medido el 16/10/2026, de `69874c1` a `23e5843`: hook a las 18:29:04, api Live a las 18:29:36. **Total: 32 s.**
+
+No deshace los datos: lo que cambio en la base queda cambiado.
+
+### Problemas encontrados
+- Un 502 en los fronts: era el backend dormido.
+- Faltaban variables en PROD (`TZ`, `DNS_RESOLVER`).
+- El primer build en Render estuvo 1 h 22 min en cola.
+
+### Uso de IA
+Use Claude para el `ci.yml`, la plantilla de nginx, los comandos y este texto, y para corregir variables de PROD en Render desde mi navegador. Los commits, los PR, la aprobacion y el rechazo los hice yo, y verifique cada paso en Actions, en Render y en `/health`.
