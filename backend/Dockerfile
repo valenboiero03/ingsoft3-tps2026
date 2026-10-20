@@ -16,5 +16,9 @@ FROM node:22-alpine
 WORKDIR /app
 COPY --from=build /app ./
 RUN npm prune --omit=dev
+# El commit que produjo esta imagen: lo pasa el pipeline con build-args.
+# Va al final para no invalidar la cache de las capas de arriba.
+ARG GIT_COMMIT
+ENV GIT_COMMIT=${GIT_COMMIT}
 EXPOSE 3000
 CMD ["node", "index.js"]
