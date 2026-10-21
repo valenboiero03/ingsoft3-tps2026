@@ -13,4 +13,5 @@ export const {
   getProfesionales,
   getDisponibilidad,
   crearTurno,
+  cancelarTurno,
 } = cliente

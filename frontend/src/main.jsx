@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import Layout from './components/Layout.jsx'
 import Catalogo from './pages/Catalogo.jsx'
+import Reserva from './pages/Reserva.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')).render(
             y le pasa los datos del negocio a la pantalla que este adentro. */}
         <Route element={<Layout />}>
           <Route path="/" element={<Catalogo />} />
+          <Route path="/reservar/:id" element={<Reserva />} />
         </Route>
       </Routes>
     </BrowserRouter>
