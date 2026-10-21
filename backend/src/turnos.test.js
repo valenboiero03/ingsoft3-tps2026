@@ -145,3 +145,59 @@ describe('reservar', () => {
     await expect(servicio.reservar(reserva)).rejects.toBe(caida);
   });
 });
+
+describe('cancelar', () => {
+  // Faltan mas de 4 horas: es manana a las 09:30 y AHORA es hoy a las 10:15.
+  const turnoReservado = {
+    id: 7,
+    codigo: 'TRN-2026-0007',
+    fecha: `${MANANA} 09:30:00`,
+    estado: 'pendiente',
+  };
+
+  function armarCancelacion(turno, cancelado = { ...turno, estado: 'cancelado' }) {
+    return armar({
+      buscarTurnoPorCodigo: vi.fn().mockResolvedValue(turno),
+      cancelarTurno: vi.fn().mockResolvedValue(cancelado),
+    });
+  }
+
+  it('busca el turno por su codigo, lo cancela y lo devuelve cancelado', async () => {
+    const { repo, servicio } = armarCancelacion(turnoReservado);
+
+    const turno = await servicio.cancelar('TRN-2026-0007');
+
+    expect(turno.estado).toBe('cancelado');
+    expect(repo.buscarTurnoPorCodigo).toHaveBeenCalledWith('TRN-2026-0007');
+    expect(repo.cancelarTurno).toHaveBeenCalledWith(7);
+  });
+
+  it('si el codigo no existe responde 404 y NO cambia nada', async () => {
+    const { repo, servicio } = armarCancelacion(null);
+
+    await expect(servicio.cancelar('TRN-2026-9999')).rejects.toMatchObject({
+      status: 404,
+      message: 'El turno no existe',
+    });
+    expect(repo.cancelarTurno).not.toHaveBeenCalled();
+  });
+
+  it('si faltan menos de 4 horas responde 409 con el motivo y NO cambia nada', async () => {
+    const { repo, servicio } = armarCancelacion({ ...turnoReservado, fecha: `${HOY} 13:00:00` });
+
+    await expect(servicio.cancelar('TRN-2026-0007')).rejects.toMatchObject({
+      status: 409,
+      message: 'Solo se puede cancelar hasta 4 horas antes del turno',
+    });
+    expect(repo.cancelarTurno).not.toHaveBeenCalled();
+  });
+
+  it('si otro pedido lo cancelo entre la busqueda y el guardado, responde 409', async () => {
+    const { servicio } = armarCancelacion(turnoReservado, null);
+
+    await expect(servicio.cancelar('TRN-2026-0007')).rejects.toMatchObject({
+      status: 409,
+      message: 'El turno ya estaba cancelado',
+    });
+  });
+});

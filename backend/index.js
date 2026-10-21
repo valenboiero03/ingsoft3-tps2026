@@ -106,6 +106,16 @@ app.post('/api/turnos', async (req, res) => {
   }
 });
 
+// Cancelacion de un turno por su codigo (el que ve el cliente). No borra la
+// fila: la pasa a 'cancelado'. 404 si no existe, 409 si la regla no lo permite.
+app.delete('/api/turnos/:codigo', async (req, res) => {
+  try {
+    res.json(await turnos.cancelar(req.params.codigo));
+  } catch (err) {
+    manejarError(res, err, 'Error al cancelar el turno');
+  }
+});
+
 // Esquema de la base: lo crea la propia app al arrancar. init.sql se puede
 // correr las veces que sea sin duplicar nada (IF NOT EXISTS, ON CONFLICT DO
 // NOTHING), asi que cada entorno (QA, PROD) arma su base solo en su primer

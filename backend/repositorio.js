@@ -111,6 +111,28 @@ function crearRepositorio(pool) {
       );
       return result.rows[0];
     },
+
+    // Un turno por su codigo (el que ve el cliente), o null si no existe.
+    async buscarTurnoPorCodigo(codigo) {
+      const result = await pool.query(
+        'SELECT id, codigo, fecha, estado FROM turnos WHERE codigo = $1',
+        [codigo]
+      );
+      return result.rows[0] || null;
+    },
+
+    // Baja logica: el turno pasa a 'cancelado' y el indice parcial libera el
+    // horario. Si ya estaba cancelado no cambia nada y devuelve null.
+    async cancelarTurno(id) {
+      const result = await pool.query(
+        `UPDATE turnos
+            SET estado = 'cancelado'
+          WHERE id = $1 AND estado <> 'cancelado'
+          RETURNING id, codigo, fecha, estado`,
+        [id]
+      );
+      return result.rows[0] || null;
+    },
   };
 }
 
