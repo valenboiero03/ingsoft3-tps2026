@@ -58,6 +58,18 @@ describe('cliente de la API', () => {
     })
   })
 
+  it('cancela el turno con DELETE sobre su codigo', async () => {
+    const traer = vi
+      .fn()
+      .mockResolvedValue(respuestaOk({ codigo: 'TRN-2026-0001', estado: 'cancelado' }))
+    const cliente = crearCliente(traer)
+
+    const turno = await cliente.cancelarTurno('TRN-2026-0001')
+
+    expect(turno.estado).toBe('cancelado')
+    expect(traer).toHaveBeenCalledWith('/api/turnos/TRN-2026-0001', { method: 'DELETE' })
+  })
+
   it('si el backend rechaza el pedido, falla con el mensaje que mando el backend', async () => {
     const traer = vi
       .fn()

@@ -37,5 +37,10 @@ export function crearCliente(traer) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datos),
       }),
+
+    // Cancela un turno por su codigo. El backend no borra la fila: la pasa a
+    // 'cancelado' y el horario vuelve a quedar libre.
+    cancelarTurno: (codigo) =>
+      pedir(`/turnos/${encodeURIComponent(codigo)}`, { method: 'DELETE' }),
   }
 }
