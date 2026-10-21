@@ -4,3 +4,7 @@ obj/
 .env
 
 coverage/
+
+# Playwright: los genera cada corrida, no se commitean
+playwright-report/
+test-results/
