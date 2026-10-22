@@ -1,4 +1,11 @@
-﻿## Enlaces de este TP (TP6)
+﻿## Enlaces de este TP (TP7)
+- **Paquetes** (una etiqueta por imagen, `sha-<commit>`): [backend](https://github.com/valenboiero03/ingsoft3-tps2026/pkgs/container/ingsoft3-tps2026-backend) y [frontend](https://github.com/valenboiero03/ingsoft3-tps2026/pkgs/container/ingsoft3-tps2026-frontend).
+- **Integracion VERDE + e2e ROJA:** [corrida #55](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/39779212385), por el [commit 9f90c83](https://github.com/valenboiero03/ingsoft3-tps2026/commit/9f90c83da9a55744e61a07dc7e33d93604dfd3c2) que rompio la app. Reportes: [playwright-report-integracion](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/39779212385/artifacts/12425289862) (verde) y [playwright-report-e2e](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/39779212385/artifacts/12426221397) (rojo).
+- **Corrida completa en verde hasta PROD:** [corrida #57](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/39782260084), con el arreglo `a884d64`.
+- **QA:** [api](https://turnero-api-qa-i3gd.onrender.com/health) y [front](https://turnero-front-qa-crex.onrender.com).
+- **PROD:** [api](https://turnero-api-prod-am2s.onrender.com/health) y [front](https://turnero-front-prod-y4rx.onrender.com).
+
+## Enlaces de este TP (TP6)
 - **Paquetes:**
   - [backend](https://github.com/valenboiero03/ingsoft3-tps2026/pkgs/container/ingsoft3-tps2026-backend)
   - [frontend](https://github.com/valenboiero03/ingsoft3-tps2026/pkgs/container/ingsoft3-tps2026-frontend)
@@ -215,3 +222,59 @@ No deshace los datos: lo que cambio en la base queda cambiado.
 
 ### Uso de IA
 Use Claude para el `ci.yml`, la plantilla de nginx, los comandos y este texto, y para corregir variables de PROD en Render desde mi navegador. Los commits, los PR, la aprobacion y el rechazo los hice yo, y verifique cada paso en Actions, en Render y en `/health`.
+
+## TP7 - Contenedores en el pipeline + integracion y e2e
+
+### Build once, deploy many
+En el TP6 Render reconstruia cada commit: QA y PROD corrian dos builds distintos del mismo codigo, y ninguno era la imagen que paso los tests. Si entre el deploy a QA y la aprobacion se actualizaba `node:22-alpine`, PROD recibia otro binario que el probado. Ahora el pipeline construye una vez, publica `sha-<commit>` y los cuatro servicios ejecutan esa imagen: lo verificado en QA es exactamente lo que llega a PROD.
+
+### Etiquetas
+- `sha-<commit>` en el registry: dice de que commit salio cada imagen. Es la unica que usa el pipeline para desplegar.
+- `v7.0.0` en git: nombra la version que anduvo en PROD.
+- No publico `latest`: se mueve con cada merge, asi que no dice que esta corriendo ni sirve para volver atras.
+- Les cambie la fuente a los cuatro servicios existentes (no cree nuevos) y quedaron configurados con `sha-4d09423...`. No es la que corre: cada deploy le pasa su imagen con `imgURL`. Por eso no uso Manual Deploy, que desplegaria esa imagen vieja.
+
+### De la release a la imagen
+`git rev-list -n1 v7.0.0` da el commit, y la imagen `sha-<ese commit>` esta en los dos paquetes. Volver a esa version es mandarle esa imagen a los hooks.
+
+### Como se comprueba que el entorno ejecuta mi imagen
+- En Events de cada servicio, el deploy dice "Deploy Hook" y nombra el `sha-<commit>` de la corrida.
+- La imagen del backend lleva el commit horneado (`ARG GIT_COMMIT` + `build-args`) y `/health` lo devuelve. Un servicio de imagen no tiene `RENDER_GIT_COMMIT`, asi que si el smoke ve el commit de la corrida, la api ejecuta esa imagen.
+- El smoke no prueba que la app funcione: en la corrida #55 paso en verde con el formulario de reserva roto.
+
+### Que prueba cada suite
+Integracion (`api.spec.js`, sin navegador, contra la api de QA):
+1. Reservar: el GET lo devuelve y el horario deja de ofrecerse; cancelar: no queda activo y el horario vuelve.
+2. Reserva sin telefono: 400 y no se crea nada.
+3. Elegida: el mismo horario dos veces da 409 y queda un solo turno. Lo garantiza el indice unico de Postgres, que un unitario con doble no ve. Si se rompe, dos clientes caen al mismo horario.
+
+E2E (`turnos.spec.js`, Chromium contra el front de QA):
+1. Reservar desde el catalogo, ver la confirmacion con su nombre y codigo, cancelar, y el horario vuelve.
+2. Un dia que el negocio no atiende: se ve el motivo, no hay horarios ni boton de confirmar, y no se crea nada.
+3. Elegida: lo que reserva un cliente deja de ofrecerse a otro, en otro navegador. Es el flujo de todos los dias: si falla, me escriben dos clientes con el mismo turno.
+
+No puse en e2e los bordes de la agenda (solapamientos, horarios pasados, las 4 horas), que ya cubren los unitarios, ni en integracion nada de pantalla. Cancelar es baja logica, asi que "ya no esta" se comprueba como "no hay turno activo y el horario vuelve a ofrecerse".
+
+### El par verde/rojo
+Rompi el front: `Reserva.jsx` mandaba `telefono` en vez de `telefonoCliente`. En la corrida #55 el smoke y la integracion quedaron verdes, la e2e roja y `deploy-prod` ni pidio aprobacion. La integracion le habla a la api con el campo correcto y la base reservo y cancelo: la api esta sana, el que la usa mal es el front. En la traza se ve el `POST /api/turnos` con `telefono` y el 400. Si hubiera roto la api, la integracion quedaba roja y la e2e no corria.
+
+### Integracion amplia
+Le hablo a la api de QA ya desplegada. Gana: prueba la imagen real contra el Postgres real, con muy poca configuracion. Pierde: llega despues del deploy, depende de Render y comparte la base de QA. La estrecha (api y Postgres dentro del job) avisaria antes y aislada, a costa de bastante mas configuracion.
+
+### Cold start, flaky y QA compartido
+- El smoke ya despierta QA. Playwright espera hasta 60 s por test y 15 s por asercion, sin sleeps, con un reintento.
+- Un test flaky es el que pasa recien al reintentar. Si se repite, se arregla el test: uno que a veces falla ensena a ignorar el rojo.
+- Ninguna prueba fija horario: piden un dia habil a 3 a 5 dias y un horario libre, usan un nombre unico, cancelan aunque fallen (`afterEach`) y corren de a una.
+- Limite conocido: dos merges seguidos pueden redesplegar QA en medio de las pruebas del otro. Se reconoce en Events (que imagen corria y a que hora). Hago un merge por vez y rechazo la corrida vieja.
+
+### Misma imagen del front en QA y PROD
+Como en el TP6, `BACKEND_URL` y `DNS_RESOLVER` van por variable del servicio. En cambio `TZ` de la api ahora va en la imagen: es un dato del negocio, igual en todos los entornos, y en el TP6 se habia olvidado en PROD. Probe la api sin `TZ`: ofrecia solo los horarios de las 18 en adelante.
+
+### Problemas encontrados
+- El smoke tomaba el commit de `RENDER_GIT_COMMIT`, que no existe en un servicio de imagen: lo hornee en la imagen.
+- La api no podia cancelar un turno, y las pruebas no tenian como limpiar: agregue `DELETE /api/turnos/:codigo` con la regla de 4 horas, y subi la pagina de reserva pendiente desde el TP5.
+- Se filtro un deploy hook en una captura: lo regenere y actualice el secret.
+- Cancele una corrida despues de aprobar PROD y el deploy ya habia salido: cancelar no es rollback, el freno es rechazar antes de aprobar.
+
+### Uso de IA
+Use Claude para el endpoint, la pagina de reserva, las dos suites, los cambios del `ci.yml` y este texto; edito los archivos directamente en mi repo. Antes de cada PR corrio los unitarios, probo el endpoint contra un Postgres y las suites en un Chromium real, incluida la rotura. Los commits, los PR, el `ci.yml`, las aprobaciones y la release los hice yo, y verifique cada paso en Actions, en los reportes, en Render y en QA.
