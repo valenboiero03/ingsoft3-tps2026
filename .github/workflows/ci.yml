@@ -218,11 +218,88 @@ jobs:
           echo "QA no respondio a tiempo"
           exit 1
 
+  # Escalon del medio: pedidos HTTP directo a la api de QA (sin navegador y sin
+  # dobles), con la base de verdad detras. Corre apenas QA ejecuta la imagen de
+  # ESTA corrida, y antes que las e2e: si la api esta rota, no se gasta un
+  # navegador en confirmarlo.
+  integracion:
+    runs-on: ubuntu-latest
+    needs: deploy-qa                         # QA ya esta ejecutando la imagen de ESTA corrida
+    timeout-minutes: 15
+    steps:
+      - name: Bajar el codigo al runner
+        uses: actions/checkout@v6
+
+      - name: Preparar Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      # Sin `playwright install`: estas pruebas no abren navegador.
+      - name: Instalar dependencias (sin navegador)
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Integracion contra la api de QA
+        env:
+          API_BASE_URL: https://turnero-api-qa-i3gd.onrender.com   # la API de QA, no el front
+        run: npx playwright test e2e/api.spec.js
+        working-directory: ./frontend
+
+      # El reporte importa MAS cuando falla. Nombre distinto del de e2e.
+      - name: Publicar reporte de integracion
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-integracion
+          path: frontend/playwright-report
+          retention-days: 7
+
+  # La punta de la piramide: un navegador de verdad contra el front de QA, que
+  # le habla a su api y a su base. Es el gate: sin e2e verde, PROD ni pide
+  # aprobacion.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: integracion                       # si la api esta rota, no gastamos un navegador
+    timeout-minutes: 20                      # si algo se cuelga, el job muere en vez de esperar horas
+    steps:
+      - name: Bajar el codigo al runner
+        uses: actions/checkout@v6
+
+      - name: Preparar Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias + navegador
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+        working-directory: ./frontend
+
+      - name: e2e contra el front de QA
+        env:
+          E2E_BASE_URL: https://turnero-front-qa-crex.onrender.com   # el FRONT de QA
+        run: npx playwright test e2e/turnos.spec.js   # SU archivo: sin esto vuelve a correr la integracion
+        working-directory: ./frontend
+
+      - name: Publicar reporte e2e
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-e2e
+          path: frontend/playwright-report
+          retention-days: 7
+
   deploy-prod:
     runs-on: ubuntu-latest
-    needs: deploy-qa                         # PROD solo despues de QA vivo
-    # Sin if de rama: depende de deploy-qa, que ya lo tiene. En un PR deploy-qa
-    # no corre, asi que este tampoco. La condicion se hereda por la cadena.
+    needs: e2e                               # EL gate: sin e2e verde, ni siquiera se pide aprobacion
+    # Sin if de rama: la cadena arranca en deploy-qa, que ya lo tiene. En un PR
+    # deploy-qa no corre, y por eso tampoco integracion, e2e ni este.
     environment: production                  # aca la corrida se PAUSA hasta que el reviewer aprueba
     # Un solo deploy a PROD a la vez. No ordena la cola de aprobaciones: si
     # quedan dos corridas esperando, la vieja se rechaza a mano.
