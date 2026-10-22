@@ -107,7 +107,7 @@ export default function Reserva() {
         fecha,
         hora,
         nombreCliente,
-        telefonoCliente,
+        telefono: telefonoCliente,
         emailCliente: emailCliente || undefined,
         nota: nota || undefined,
       })
