@@ -278,3 +278,21 @@ Como en el TP6, `BACKEND_URL` y `DNS_RESOLVER` van por variable del servicio. En
 
 ### Uso de IA
 Use Claude para el endpoint, la pagina de reserva, las dos suites, los cambios del `ci.yml` y este texto; edito los archivos directamente en mi repo. Antes de cada PR corrio los unitarios, probo el endpoint contra un Postgres y las suites en un Chromium real, incluida la rotura. Los commits, los PR, el `ci.yml`, las aprobaciones y la release los hice yo, y verifique cada paso en Actions, en los reportes, en Render y en QA.
+
+## TP8 - Infraestructura como Codigo
+
+### Riel y versiones
+Riel canonico: Terraform 1.16.6 con `kislerdm/neon` 0.18.0 y `render-oss/render` 1.9.1, fijados por version y con el `.terraform.lock.hcl` commiteado. `infra/` declara un entorno nuevo, `preprod`: un proyecto de Neon propio (`turnero-preprod`, region `aws-us-east-2`) y dos servicios free de Render en Ohio con la imagen del merge `a23f8b7` del TP7. QA y PROD no se tocaron.
+
+- Las claves (`NEON_API_KEY`, `RENDER_API_KEY`, `RENDER_OWNER_ID`) y el `TF_VAR_neon_org_id` van por variables de entorno, nunca en el HCL.
+- `DATABASE_URL` se arma en un `locals` con el rol, la contrasena, el host y la base que devuelve Neon. `BACKEND_URL` sale del `url` de la api, con `trimsuffix` para no dejar la barra final.
+- El estado vive en `infra/terraform.tfstate`, ignorado por git porque tiene la contrasena del rol en texto plano.
+
+### Problemas encontrados
+- El primer `apply` fallo con `org_id is required`: mi cuenta de Neon esta dentro de una organizacion. Lo resolvi agregando `org_id` al proyecto, pasado como `TF_VAR_neon_org_id`.
+- Al recrear preprod, Render le dio otro sufijo a las URLs (`-4m9x` paso a `-u57a`): por eso las leo del `output` y no las guardo.
+- La base volvio en otra region (`us-east-2` paso a `us-east-1`) porque no la habia fijado. Agregue `region_id` y despues de un `destroy` → `apply` volvio en `us-east-2`. Lo agregue con preprod destruido: cambiar la region reemplaza el proyecto y cambia la `DATABASE_URL` de la api, que en Render free no se puede actualizar.
+- Terraform se instalo con winget pero PowerShell no lo encontraba hasta reiniciar la terminal.
+
+### Uso de IA
+Use Claude para interpretar la guia, escribir el HCL y diagnosticar los errores; edito los archivos directamente en mi repo. Los comandos de Terraform los corri yo y lei cada plan antes de aplicarlo: `init`, `plan`, `apply`, la segunda pasada con "No changes", el drift en Neon (base borrada, detectada y reparada, y una base no declarada que el plan no ve), `prevent_destroy` y el ciclo `destroy` → `apply`. Verifique cada paso en las consolas de Neon y Render y con `curl` a `/health` y `/api/servicios` por la api y por el front. Los commits, el PR y la release los hice yo.
