@@ -8,3 +8,10 @@ coverage/
 # Playwright: los genera cada corrida, no se commitean
 playwright-report/
 test-results/
+
+# Terraform (TP8): el estado tiene secretos en texto plano y NO se commitea.
+# El .terraform.lock.hcl SI se commitea (fija version y hash de cada provider).
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
