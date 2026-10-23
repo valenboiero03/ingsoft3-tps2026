@@ -1,0 +1,19 @@
+# TP9: Dependabot revisa una vez por semana las dependencias de los tres
+# ecosistemas de la app y abre un PR por cada version nueva. El CI corre sobre
+# ese PR como sobre cualquier otro: si queda verde, se puede mergear.
+version: 2
+updates:
+  - package-ecosystem: "npm"              # las dependencias del backend (Express)
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"              # las del frontend (React + Vite)
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"   # las actions del pipeline tambien son dependencias
+    directory: "/"
+    schedule:
+      interval: "weekly"
