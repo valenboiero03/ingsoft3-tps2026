@@ -25,4 +25,5 @@ ENV TZ=America/Argentina/Cordoba
 ARG GIT_COMMIT
 ENV GIT_COMMIT=${GIT_COMMIT}
 EXPOSE 3000
-CMD ["node", "index.js"]
+# --import carga Sentry antes que la app (ver instrument.js).
+CMD ["node", "--import", "./instrument.js", "index.js"]

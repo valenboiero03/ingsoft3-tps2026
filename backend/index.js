@@ -4,6 +4,7 @@
 
 import { readFile } from 'node:fs/promises';
 import express from 'express';
+import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import pool from './db.js';
 import { crearRepositorio } from './repositorio.js';
@@ -24,7 +25,10 @@ function manejarError(res, err, mensajeGenerico) {
   if (err.status) {
     return res.status(err.status).json({ error: err.message });
   }
+  // Un error inesperado: ademas del log, se lo manda a Sentry (Issues). Los
+  // errores con status (400/404/409) son respuestas esperadas, no fallas.
   console.error(err);
+  Sentry.captureException(err);
   return res.status(500).json({ error: mensajeGenerico });
 }
 
@@ -114,6 +118,23 @@ app.delete('/api/turnos/:codigo', async (req, res) => {
   } catch (err) {
     manejarError(res, err, 'Error al cancelar el turno');
   }
+});
+
+// TEMPORAL (TP9): endpoint que falla a proposito para ver un error llegar a
+// Sentry. Se saca al terminar el practico.
+app.get('/api/falla', () => {
+  throw new Error('Falla de prueba del TP9');
+});
+
+// Lo que tire una ruta y no maneje ella misma llega aca: Sentry lo registra
+// y despues Express responde 500. Va despues de todas las rutas.
+Sentry.setupExpressErrorHandler(app);
+
+// Y despues respondemos nosotros: un JSON generico, como el resto de la api.
+// Sin esto Express contesta con su pagina de error, que muestra el stack
+// (rutas y lineas del servidor) porque NODE_ENV no esta en 'production'.
+app.use((err, req, res, next) => {
+  res.status(500).json({ error: 'Error interno del servidor' });
 });
 
 // Esquema de la base: lo crea la propia app al arrancar. init.sql se puede
