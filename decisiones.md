@@ -1,4 +1,8 @@
-﻿## Enlaces de este TP (TP7)
+﻿## Enlaces de este TP (TP9)
+- **Security:** [Dependabot](https://github.com/valenboiero03/ingsoft3-tps2026/security/dependabot) y [Code scanning](https://github.com/valenboiero03/ingsoft3-tps2026/security/code-scanning) (4 alertas cerradas).
+- **PRs:** [Dependabot `pg` #61](https://github.com/valenboiero03/ingsoft3-tps2026/pull/61), [Sentry #63](https://github.com/valenboiero03/ingsoft3-tps2026/pull/63) y la tarjeta [#64](https://github.com/valenboiero03/ingsoft3-tps2026/issues/64).
+
+## Enlaces de este TP (TP7)
 - **Paquetes** (una etiqueta por imagen, `sha-<commit>`): [backend](https://github.com/valenboiero03/ingsoft3-tps2026/pkgs/container/ingsoft3-tps2026-backend) y [frontend](https://github.com/valenboiero03/ingsoft3-tps2026/pkgs/container/ingsoft3-tps2026-frontend).
 - **Integracion VERDE + e2e ROJA:** [corrida #55](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/39779212385), por el [commit 9f90c83](https://github.com/valenboiero03/ingsoft3-tps2026/commit/9f90c83da9a55744e61a07dc7e33d93604dfd3c2) que rompio la app. Reportes: [playwright-report-integracion](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/39779212385/artifacts/12425289862) (verde) y [playwright-report-e2e](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/39779212385/artifacts/12426221397) (rojo).
 - **Corrida completa en verde hasta PROD:** [corrida #57](https://github.com/valenboiero03/ingsoft3-tps2026/actions/runs/39782260084), con el arreglo `a884d64`.
@@ -295,4 +299,24 @@ Riel canonico: Terraform 1.16.6 con `kislerdm/neon` 0.18.0 y `render-oss/render`
 - Terraform se instalo con winget pero PowerShell no lo encontraba hasta reiniciar la terminal.
 
 ### Uso de IA
-Use Claude para interpretar la guia, escribir el HCL y diagnosticar los errores; edito los archivos directamente en mi repo. Los comandos de Terraform los corri yo y lei cada plan antes de aplicarlo: `init`, `plan`, `apply`, la segunda pasada con "No changes", el drift en Neon (base borrada, detectada y reparada, y una base no declarada que el plan no ve), `prevent_destroy` y el ciclo `destroy` → `apply`. Verifique cada paso en las consolas de Neon y Render y con `curl` a `/health` y `/api/servicios` por la api y por el front. Los commits, el PR y la release los hice yo.
+Use Claude para escribir el HCL y diagnosticar los errores; edito los archivos directamente en mi repo. Los comandos de Terraform los corri yo y lei cada plan antes de aplicarlo: `init`, `plan`, `apply`, la segunda pasada con "No changes", el drift en Neon (base borrada, detectada y reparada, y una base no declarada que el plan no ve), `prevent_destroy` y el ciclo `destroy` → `apply`. Verifique cada paso en las consolas de Neon y Render y con `curl` a `/health` y `/api/servicios` por la api y por el front. Los commits, el PR y la release los hice yo.
+
+## TP9 - DevSecOps + Observabilidad
+
+### El PR de Dependabot que mergee
+`dependabot.yml` vigila `npm` en `/backend` y `/frontend` y `github-actions` en `/`. Mergee el #61: `pg` de 8.23.0 a 8.23.1, el driver con el que la api habla con Postgres. Es un **patch** (SemVer: solo arreglos) y el changelog no anunciaba cambios que rompan. Me anime porque el CI del PR quedo verde (tests + umbral de cobertura) y, al mergear, main paso por QA, integracion y e2e antes de pedir la aprobacion de PROD.
+
+### Monitor y Sentry
+- **Monitor (UptimeRobot, cada 5 min, sobre `/health` de PROD):** suspendi PROD a las 00:03 y el DOWN llego a las 00:07 (unos 4 minutos). Reanude a las 00:11 y el UP llego a las 00:13. Despues lo pause, para no gastar las 750 horas de Render.
+- **Mas usada:** `GET /api/servicios` (el catalogo), 6 pedidos, p95 10,65 ms.
+- **Mas lenta:** `POST /api/turnos` (reservar), p95 76,42 ms: la unica que escribe en la base y antes recalcula la disponibilidad. Con ese dato abri la tarjeta #64.
+- El error de prueba (`/api/falla`) quedo en Issues y despues saque el endpoint.
+
+### Problemas encontrados
+- Al cargar `SENTRY_DSN` en Render, *Save, rebuild and deploy* levanto la imagen guardada en el servicio (de un commit del TP7) y piso la que habia desplegado el pipeline. Lo resolvi volviendo a correr `deploy-prod`, que pasa la imagen por `imgURL`.
+- El primer DOWN del monitor fue antes de la caida: Render estaba dormido y contesto 503.
+- CodeQL encontro 4 jobs del pipeline sin `permissions`; les declare `contents: read` (minimo privilegio).
+- Sin `NODE_ENV=production`, Express mostraba el stack en los 500; agregue un manejador que responde un JSON generico.
+
+### Uso de IA
+Use Claude para escribir `dependabot.yml`, el codigo de Sentry y los permisos del pipeline, y para interpretar los hallazgos; edito los archivos directamente en mi repo. Las cuentas de Sentry y UptimeRobot, las configuraciones de GitHub y Render, la caida y las aprobaciones las hice yo. Verifique cada paso con `curl` a `/health` y `/api/falla`, en Sentry (Issues y Traces), en el historial del monitor y en Code scanning. Los commits, los PRs y la release los hice yo.
