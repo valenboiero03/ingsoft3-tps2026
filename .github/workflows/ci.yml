@@ -162,6 +162,10 @@ jobs:
 
   deploy-qa:
     runs-on: ubuntu-latest
+    # Minimo privilegio (TP9, hallazgo de CodeQL): este job solo baja el codigo
+    # o llama a Render con sus propios secrets; el token de GitHub no escribe nada.
+    permissions:
+      contents: read
     needs: [build-backend, build-frontend]   # sin CI verde no hay imagen, y sin imagen no hay deploy
     if: github.ref == 'refs/heads/main'      # los PRs verifican; solo main despliega
     environment: qa                          # hereda los secrets del environment qa
@@ -224,6 +228,10 @@ jobs:
   # navegador en confirmarlo.
   integracion:
     runs-on: ubuntu-latest
+    # Minimo privilegio (TP9, hallazgo de CodeQL): este job solo baja el codigo
+    # o llama a Render con sus propios secrets; el token de GitHub no escribe nada.
+    permissions:
+      contents: read
     needs: deploy-qa                         # QA ya esta ejecutando la imagen de ESTA corrida
     timeout-minutes: 15
     steps:
@@ -262,6 +270,10 @@ jobs:
   # aprobacion.
   e2e:
     runs-on: ubuntu-latest
+    # Minimo privilegio (TP9, hallazgo de CodeQL): este job solo baja el codigo
+    # o llama a Render con sus propios secrets; el token de GitHub no escribe nada.
+    permissions:
+      contents: read
     needs: integracion                       # si la api esta rota, no gastamos un navegador
     timeout-minutes: 20                      # si algo se cuelga, el job muere en vez de esperar horas
     steps:
@@ -297,6 +309,10 @@ jobs:
 
   deploy-prod:
     runs-on: ubuntu-latest
+    # Minimo privilegio (TP9, hallazgo de CodeQL): este job solo baja el codigo
+    # o llama a Render con sus propios secrets; el token de GitHub no escribe nada.
+    permissions:
+      contents: read
     needs: e2e                               # EL gate: sin e2e verde, ni siquiera se pide aprobacion
     # Sin if de rama: la cadena arranca en deploy-qa, que ya lo tiene. En un PR
     # deploy-qa no corre, y por eso tampoco integracion, e2e ni este.
