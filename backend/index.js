@@ -120,12 +120,6 @@ app.delete('/api/turnos/:codigo', async (req, res) => {
   }
 });
 
-// TEMPORAL (TP9): endpoint que falla a proposito para ver un error llegar a
-// Sentry. Se saca al terminar el practico.
-app.get('/api/falla', () => {
-  throw new Error('Falla de prueba del TP9');
-});
-
 // Lo que tire una ruta y no maneje ella misma llega aca: Sentry lo registra
 // y despues Express responde 500. Va despues de todas las rutas.
 Sentry.setupExpressErrorHandler(app);
